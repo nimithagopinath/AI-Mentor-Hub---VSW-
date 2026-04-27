@@ -1,0 +1,42 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with interests and learning parameters",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "interests": { "type": "array", "items": { "type": "string" } },
+        "careerGoal": { "type": "string", "enum": ["job", "freelancer", "founder", "career_switch"] },
+        "timeAvailability": { "type": "string" },
+        "skillLevel": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "interests", "careerGoal", "timeAvailability"]
+    },
+    "Roadmap": {
+      "title": "Roadmap",
+      "description": "Personalized learning roadmap generated for a user",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "steps": { "type": "array" },
+        "weeklySchedule": { "type": "array" },
+        "recommendationReason": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "steps", "weeklySchedule", "recommendationReason"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profile data"
+    },
+    "/roadmaps/{roadmapId}": {
+      "schema": "Roadmap",
+      "description": "Generated learning roadmaps"
+    }
+  }
+}

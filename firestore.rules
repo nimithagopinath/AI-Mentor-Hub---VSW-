@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helpers
+    function isSignedIn() { return request.auth != null; }
+    function isOwner(userId) { return isSignedIn() && request.auth.uid == userId; }
+    function isValidId(id) { return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$'); }
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    // User Validation
+    function isValidUser(data) {
+      return data.uid == request.auth.uid &&
+             data.interests is list &&
+             data.careerGoal in ['job', 'freelancer', 'founder', 'career_switch'] &&
+             data.timeAvailability is string &&
+             data.timeAvailability.size() <= 100 &&
+             (data.get('skillLevel', null) == null || data.skillLevel in ['beginner', 'intermediate', 'advanced']);
+    }
+
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUser(incoming());
+      allow update: if isOwner(userId) && isValidUser(incoming()) && 
+                    incoming().diff(existing()).affectedKeys().hasOnly(['interests', 'careerGoal', 'timeAvailability', 'skillLevel', 'updatedAt']);
+    }
+
+    // Roadmap Validation
+    function isValidRoadmap(data) {
+      return data.userId == request.auth.uid &&
+             data.steps is list &&
+             data.weeklySchedule is list &&
+             data.recommendationReason is string &&
+             data.recommendationReason.size() <= 10000 &&
+             (data.get('createdAt', null) == null || data.createdAt is string);
+    }
+
+    match /roadmaps/{roadmapId} {
+      allow list: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow get: if isSignedIn() && resource.data.userId == request.auth.uid;
+      allow create: if isSignedIn() && isValidRoadmap(incoming());
+      allow update: if isSignedIn() && existing().userId == request.auth.uid && isValidRoadmap(incoming());
+      allow delete: if isSignedIn() && existing().userId == request.auth.uid;
+    }
+  }
+}
